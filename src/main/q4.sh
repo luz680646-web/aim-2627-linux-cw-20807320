@@ -5,6 +5,17 @@ set -eu
 input=${1:?需要输入目录}
 output=${2:?需要输出目录}
 
-# TODO：删除下方提示和 exit 77，再填写你的命令。
-printf '%s\n' 'Q4 尚未实现' >&2
-exit 77
+# 按启动日志、运行日志的顺序合并，保留原始顺序及重复记录。
+cat -- "$input/boot.log" "$input/run.log" > "$output/all.log"
+
+# 只匹配行首级别；grep 返回 1 表示没有匹配，是正常情况。
+# 其他错误仍会使脚本退出，避免掩盖文件读取等问题。
+grep '^ERROR ' "$output/all.log" > "$output/errors.log" || [ "$?" -eq 1 ]
+grep -E '^(WARN|ERROR) ' "$output/all.log" > "$output/attention.log" || [ "$?" -eq 1 ]
+
+tail -n 5 "$output/all.log" > "$output/recent.log"
+head -n 3 "$output/errors.log" > "$output/first-errors.log"
+
+# printf 去掉 wc 可能添加的对齐空格，输出一个整数和换行。
+count=$(wc -l < "$output/errors.log")
+printf '%d\n' "$count" > "$output/error-count.txt"
