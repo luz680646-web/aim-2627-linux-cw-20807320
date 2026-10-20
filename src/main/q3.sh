@@ -5,6 +5,21 @@ set -eu
 input=${1:?需要输入目录}
 output=${2:?需要输出目录}
 
-# TODO：删除下方提示和 exit 77，再填写你的命令。
-printf '%s\n' 'Q3 尚未实现' >&2
-exit 77
+workspace="$output/sentry_ws"
+mkdir -p "$workspace/scripts" "$workspace/config" "$workspace/backup" "$workspace/archive"
+
+# 先复制输入素材，后续整理只操作输出目录。
+cp -- "$input/hello.sh" "$workspace/scripts/hello.sh"
+cp -- "$input/robot.conf" "$workspace/config/robot.conf"
+cp -- "$workspace/config/robot.conf" "$workspace/backup/robot.conf"
+cp -- "$input/draft.conf" "$workspace/config/draft.conf"
+mv -f -- "$workspace/config/draft.conf" "$workspace/archive/draft.conf.old"
+
+# 清除输出工作区中的临时目录，包括上次运行留下的缓存。
+rm -rf -- "$workspace/tmp"
+
+chmod 750 "$workspace/scripts/hello.sh"
+chmod 640 "$workspace/config/robot.conf"
+
+# 直接执行文件，验证执行权限，并覆盖保存标准输出。
+"$workspace/scripts/hello.sh" > "$output/hello-output.txt"
