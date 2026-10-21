@@ -5,6 +5,27 @@ set -eu
 input=${1:?需要输入目录}
 output=${2:?需要输出目录}
 
-# TODO：删除下方提示和 exit 77，再填写你的命令。
-printf '%s\n' 'Q7 尚未实现' >&2
-exit 77
+source "$input/remote.env"
+
+# 配置只保存在本题输出目录，使用本次测试提供的身份和主机记录。
+config="$output/ssh_config"
+umask 077
+cat > "$config" <<EOF
+Host aim-sentry
+    HostName "$HOST"
+    Port $PORT
+    User "$REMOTE_USER"
+    IdentityFile "$KEY_PATH"
+    UserKnownHostsFile "$KNOWN_HOSTS"
+    IdentitiesOnly yes
+    IdentityAgent none
+    StrictHostKeyChecking yes
+    BatchMode yes
+    ConnectTimeout 3
+EOF
+chmod 600 "$config"
+
+# 真实连接远端执行命令，并通过 SCP 获取日志。
+ssh -F "$config" aim-sentry whoami > "$output/remote-user.txt"
+mkdir -p "$output/received"
+scp -F "$config" "aim-sentry:$REMOTE_LOG" "$output/received/errors.log"
